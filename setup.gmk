@@ -46,10 +46,12 @@ ARCH.linuxpico = x86_64-linux-gnu
 ARCH.corecell  = arm-linux-gnueabihf
 ARCH.rpi     = arm-linux-gnueabihf
 ARCH.kerlink = arm-klk-linux-gnueabi
+ARCH.wb50 = arm-laird-linux-gnueabi
 ARCH=${ARCH.${platform}}
 
 export TDfull := $(shell cd ${TD} && pwd)
-TOOLCHAIN=${HOME}/toolchain-${platform}
+#TOOLCHAIN=${HOME}/toolchain-${platform}
+TOOLCHAIN=/tmp/qq/${ARCH}
 
 
 ifeq (,$(wildcard ${TOOLCHAIN}))
@@ -82,6 +84,7 @@ BD=build-${platform}-${variant}
 
 # -- Architecture specific
 CFG.arm-linux-gnueabihf = linux
+CFG.arm-laird-linux-gnueabi = linux
 # CFG.x86_64-linux-gnu    = linux
 
 # -- Variant specific
@@ -95,6 +98,7 @@ CFG.std     = logini_lvl=INFO tlsdebug ral_lgw
 CFG.stdn    = logini_lvl=INFO tlsdebug ral_master_slave
 CFG.debug   = logini_lvl=DEBUG selftests tlsdebug ral_lgw
 CFG.debugn  = logini_lvl=DEBUG selftests tlsdebug ral_master_slave
+CFG.laird   = logini_lvl=INFO ral_lgw nogps no_rmtsh no_beacon
 
 # -- Platform specific
 CFG.linux   = linux lgw1 no_leds
@@ -102,6 +106,8 @@ CFG.linuxpico = linux lgw1 no_leds smtcpico
 CFG.linuxV2 = linux lgw2 no_leds lgw2genkey
 CFG.corecell = linux lgw1 no_leds sx1302
 CFG.rpi     = linux lgw1 no_leds
+CFG.wb50     = linux lgw1 no_leds
+#CFG.wb50     = linux lgw2 no_leds lgw2genkey
 CFG.kerlink = linux lgw1 no_leds
 
 SD.default = src-linux
@@ -113,6 +119,8 @@ DEPS.linuxpico = mbedtls smtcpico
 DEPS.linuxV2 = mbedtls lgw2
 DEPS.corecell = mbedtls lgw1302
 DEPS.rpi     = mbedtls lgw
+DEPS.wb50     = mbedtls lgw
+#DEPS.wb50     = mbedtls lgw2
 
 DEPS = $(or ${DEPS.${platform}}, ${DEPS.default})
 
@@ -136,12 +144,15 @@ CFLAGS.linux.testms   = -g -O0 --coverage
 CFLAGS.linux.testfs   = -g -O0 --coverage
 CFLAGS.linux.testpin  = -g -O3
 CFLAGS.linux.std      = -g -O3
+CFLAGS.linux.laird    = -O3
 
 LIBS.linux   = -llgw   ${MBEDLIBS}      -lpthread
 LIBS.linuxV2 = -llgw2  ${MBEDLIBS} -lrt -lpthread -lspi
 LIBS.linuxpico = -llgw ${MBEDLIBS}      -lpthread
 LIBS.corecell = -llgw1302  ${MBEDLIBS}      -lpthread -lrt
 LIBS.rpi     = -llgw   ${MBEDLIBS}      -lpthread
+LIBS.wb50    = -llgw   ${MBEDLIBS} -lrt     -lpthread
+#LIBS.wb50    = -llgw2   ${MBEDLIBS} -lrt     -lpthread -lspi
 LIBS.kerlink = -llgw   ${MBEDLIBS} -lrt -lpthread
 
 xCFG     =     ${CFG.${ARCH}}     ${CFG.${platform}}     ${CFG.${variant}}    ${CFG.${platform}.${variant}}
