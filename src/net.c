@@ -333,6 +333,7 @@ enum { WSHDR_FIN    = 0x80,
 // Write data between wpos..wend
 static int writeData (conn_t* conn) {
     int ret;
+//printf("send: %s", ((char*)conn->wbuf));
     while( conn->wpos < conn->wend ) {
         if( (ret = tls_write(&conn->netctx, conn->tlsctx, conn->wbuf + conn->wpos, conn->wend - conn->wpos) ) <= 0 ) {
             if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE ) {
@@ -423,6 +424,7 @@ static int readData (conn_t* conn, int mode) {
         }
         LOG(MOD_AIO|XDEBUG, "[%d] socket read  bytes=%d", conn->netctx.fd, r);
         conn->rpos += r;
+//printf("recv: %s", conn->rbuf);
     }
   compact:
     // No enough remaining buffer space
