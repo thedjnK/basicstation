@@ -46,7 +46,10 @@ extern inline rps_t rps_make (int sf, int bw);
 
 // Fwd decl.
 static void s2e_txtimeout (tmr_t* tmr);
+
+#if !defined(CFG_no_beacon)
 static void s2e_bcntimeout (tmr_t* tmr);
+#endif
 
 
 static void setDC (s2ctx_t* s2ctx, ustime_t t) {
@@ -87,15 +90,19 @@ void s2e_ini (s2ctx_t* s2ctx) {
         s2ctx->txunits[u].timer.ctx = s2ctx;
         s2ctx->txunits[u].head = TXIDX_END;
     }
+#if !defined(CFG_no_beacon)
     rt_iniTimer(&s2ctx->bcntimer, s2e_bcntimeout);
     s2ctx->bcntimer.ctx = s2ctx;
+#endif
 }
 
 
 void s2e_free (s2ctx_t* s2ctx) {
     for( int u=0; u < MAX_TXUNITS; u++ )
         rt_clrTimer(&s2ctx->txunits[u].timer);
+#if !defined(CFG_no_beacon)
     rt_clrTimer(&s2ctx->bcntimer);
+#endif
     memset(s2ctx, 0, sizeof(*s2ctx));
     ts_iniTimesync();
     ral_stop();
@@ -755,7 +762,7 @@ static void s2e_txtimeout (tmr_t* tmr) {
     rt_setTimer(tmr, t);
 }
 
-
+#if !defined(CFG_no_beacon)
 static void s2e_bcntimeout (tmr_t* tmr) {
     s2ctx_t* s2ctx = tmr->ctx;
     ustime_t now = rt_getTime();
@@ -815,6 +822,7 @@ static void s2e_bcntimeout (tmr_t* tmr) {
     ahead += BEACON_INTVL - rt_millis(800);
     rt_setTimer(tmr, now + ahead);
 }
+#endif
 
 static bool hasFastLora(s2ctx_t* s2ctx, int minDR, int maxDR, rps_t* rpsp) {
     for( int dr=minDR; dr<=maxDR; dr++ ) {
@@ -866,7 +874,9 @@ static int handle_router_config (s2ctx_t* s2ctx, ujdec_t* D) {
     int jlistlen = 0;
     chdefl_t upchs = {{0}};
     int chslots = 0;
+#if !defined(CFG_no_beacon)
     s2bcn_t bcn = { 0 };
+#endif
 
     s2ctx->txpow = 14 * TXPOW_SCALE;  // builtin default
 
@@ -981,8 +991,8 @@ static int handle_router_config (s2ctx_t* s2ctx, ujdec_t* D) {
             }
             case J_EU868: { // common region name
                 s2ctx->canTx  = s2e_canTxEU868;
-                s2ctx->txpow  = 16 * TXPOW_SCALE;
-                s2ctx->txpow2 = 27 * TXPOW_SCALE;
+                s2ctx->txpow  = 13 * TXPOW_SCALE;
+                s2ctx->txpow2 = 13 * TXPOW_SCALE;
                 s2ctx->txpow2_freq[0] = 869400000;
                 s2ctx->txpow2_freq[1] = 869650000;
                 resetDC(s2ctx, 3600/100);  // 100s / 1h cummulative on time under PSA = ~2.78%
@@ -1097,6 +1107,7 @@ static int handle_router_config (s2ctx_t* s2ctx, ujdec_t* D) {
             uj_skipValue(D);
             break;
         }
+#if !defined(CFG_no_beacon)
         case J_bcning: {
             if( uj_null(D) )
                 break;
@@ -1139,6 +1150,7 @@ static int handle_router_config (s2ctx_t* s2ctx, ujdec_t* D) {
             uj_exitObject(D);
             break;
         }
+#endif
         default: {
             LOG(MOD_S2E|WARNING, "Unknown field in router_config - ignored: %s (0x%X)", D->field.name, D->field.crc);
             uj_skipValue(D);
@@ -1219,6 +1231,7 @@ static int handle_router_config (s2ctx_t* s2ctx, ujdec_t* D) {
         LOG(MOD_S2E|INFO, "  Dev/test settings: nocca=%d nodc=%d nodwell=%d",
             (s2e_ccaDisabled!=0), (s2e_dcDisabled!=0), (s2e_dwellDisabled!=0));
     }
+#if !defined(CFG_no_beacon)
     if( (bcn.ctrl&0xF0) != 0 ) {
         // At least one beacon frequency was specified
         LOG(MOD_S2E|INFO, "Beaconing every %~T on %F(%d) @ DR%d (frame layout %d/%d/%d)",
@@ -1228,6 +1241,7 @@ static int handle_router_config (s2ctx_t* s2ctx, ujdec_t* D) {
         s2ctx->bcn = bcn;
         s2e_bcntimeout(&s2ctx->bcntimer);
     }
+#endif
     return 1;
 }
 
