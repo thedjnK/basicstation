@@ -704,7 +704,7 @@ int sx130xconf_start (struct sx130xconf* sx130xconf, u4_t cca_region) {
     (void) sys_deviceMode; // TODO: Add device mode to sx1302 hal
 #else
     LOG(MOD_RAL|INFO, "Station device: %s (PPS capture %sabled)", sx130xconf->device, sx130xconf->pps ? "en":"dis");
-    lgwx_device_mode = sys_deviceMode;
+//    lgwx_device_mode = sys_deviceMode;
 #endif
     log_flushIO();  // flush output since lgw_start may block for quite some time on some concentrators
 
