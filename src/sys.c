@@ -244,7 +244,7 @@ uL_t sys_eui () {
         return protoEUI;
     if( (prefixEUI & 0xFFFFffffFFFF) != 0 ) {
         // Expand MAC to EUI
-        return ((protoEUI & 0xFFFFFF000000) << 16) | 0xFFFE000000 | (protoEUI & 0xFFFFFF);
+        return ((protoEUI & 0xFFFFFF000000) << 16) | 0xFFFF000000 | (protoEUI & 0xFFFFFF);
     }
     return prefixEUI | protoEUI;
 }
