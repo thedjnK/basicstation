@@ -65,6 +65,21 @@
 #define OFF_jreq_mic 19
 #define OFF_jreq_len 23
 
+// +--------------------------------------------------+
+// |            REJOIN FRAME (type 1)                 |
+// +-----+------+---------+----------+----------+-----+
+// |  1  |   1  |    8    |    8     |    2     |  4  |  bytes - all fields little endian
+// +=====+======+=========+==========+==========+=====+
+// | mhdr| type | joineui |  deveui  | rjcount1 | MIC |
+// +-----+------+---------+----------+----------+-----+
+#define OFF_rejoin_mhdr      0
+#define OFF_rejoin_type      1
+#define OFF_rejoin_joineui   2
+#define OFF_rejoin_deveui    10
+#define OFF_rejoin_rjcount1  18
+#define OFF_rejoin_mic 20
+#define OFF_rejoin_len 24
+
 // +------------------------------------------------------------+
 // |                           DATA FRAME                       |
 // +-----+---------+-----+-------+-------+------+---------+-----+
@@ -104,8 +119,8 @@ int s2e_parse_lora_frame (ujbuf_t* buf, const u1_t* frame , int len, dbuf_t* lbu
         xprintf(lbuf, "%s %16.16H", msgtype, len, &frame[0]);
         return 1;
     }
-    if( ftype == FRMTYPE_JREQ || ftype == FRMTYPE_REJOIN ) {
-        if( len != OFF_jreq_len)
+    if(ftype == FRMTYPE_JREQ) {
+        if(len != OFF_jreq_len)
             goto badframe;
         uL_t joineui = rt_rlsbf8(&frame[OFF_joineui]);
         
@@ -120,7 +135,7 @@ int s2e_parse_lora_frame (ujbuf_t* buf, const u1_t* frame , int len, dbuf_t* lbu
             return 0;
           out1:;
         }
-        str_t msgtype = (ftype == FRMTYPE_JREQ ? "jreq" : "rejoin");
+        str_t msgtype = "jreq";
         u1_t  mhdr = frame[OFF_mhdr];
         uL_t  deveui = rt_rlsbf8(&frame[OFF_deveui]);
         u2_t  devnonce = rt_rlsbf2(&frame[OFF_devnonce]);
@@ -137,6 +152,49 @@ int s2e_parse_lora_frame (ujbuf_t* buf, const u1_t* frame , int len, dbuf_t* lbu
                 msgtype, mhdr, rt_joineui, joineui, rt_deveui, deveui, devnonce, mic);
         return 1;
     }
+#if 0
+    if(ftype == FRMTYPE_REJOIN ) {
+        /* Only supports rejoin type 1 */
+        if(len != OFF_rejoin_len)
+            goto badframe;
+        uL_t joineui = rt_rlsbf8(&frame[OFF_rejoin_joineui]);
+        u1_t type = frame[OFF_rejoin_type];
+
+        if (type != 1) {
+            xprintf(lbuf, "Rejoin type %d not supported", type);
+            return 0;
+        }
+
+        if( s2e_joineuiFilter[0] != 0 ) {
+            uL_t* f = s2e_joineuiFilter-2;
+            while( *(f += 2) ) {
+                if( joineui >= f[0] && joineui <= f[1] )
+                    goto out2;
+            }
+
+            xprintf(lbuf, "Rejoin EUI %E filtered", joineui);
+            return 0;
+          out2:;
+        }
+        str_t msgtype = "rejoin";
+        u1_t  mhdr = frame[OFF_rejoin_mhdr];
+        uL_t  deveui = rt_rlsbf8(&frame[OFF_rejoin_deveui]);
+        u2_t  rjcount1 = rt_rlsbf2(&frame[OFF_rejoin_rjcount1]);
+        s4_t  mic = (s4_t)rt_rlsbf4(&frame[len-4]);
+        uj_encKVn(buf,
+                  "msgtype", 's', msgtype,
+                  "MHdr",    'i', mhdr,
+                  "RejoinType",'i', 1,
+                  rt_joineui,'E', joineui,
+                  rt_deveui, 'E', deveui,
+                  "RejoinCnt",'i', rjcount1,
+                  "MIC",     'i', mic,
+                  NULL);
+        xprintf(lbuf, "%s MHdr=%02X %s=%:E %s=%:E RJcount1=%d MIC=%d",
+                msgtype, mhdr, rt_joineui, joineui, rt_deveui, deveui, rjcount1, mic);
+        return 1;
+    }
+#endif
     u1_t foptslen = frame[OFF_fctrl] & 0xF;
     u1_t portoff = foptslen + OFF_fopts;
     if( portoff > len-4  )
